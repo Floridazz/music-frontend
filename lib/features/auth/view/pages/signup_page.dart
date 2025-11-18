@@ -39,11 +39,16 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     ref.listen(authViewModelProvider, (_, next) {
       next?.when(
         data: (data) {
-          showSnackBar(context, 'Account created successfully! Please  login.');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-          );
+          if (data != null) {
+            showSnackBar(
+              context,
+              'Account created successfully! Please login.',
+            );
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
         },
         error: (error, st) {
           showSnackBar(context, error.toString());

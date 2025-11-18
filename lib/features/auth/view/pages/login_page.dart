@@ -6,8 +6,8 @@ import 'package:client_side/features/auth/view/widgets/auth_gradient_button.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/current_user_notifier.dart';
 import '../../../../core/utils.dart';
-import '../../../home/view/pages/home_page.dart';
 import '../../viewmodel/auth_viewmodel.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -39,20 +39,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     // ref.listen(provider, listener) lets you react to provider state changes without rebuilding the widget but is used for side effects instead
     // whenever the authViewModelProvider emits a new value (loading, data, or error), run the code inside this callback (the value here is AsyncValue type).
     ref.listen(authViewModelProvider, (_, next) {
-      next?.when(
-        // AsyncValue has a .when() method, which lets you cleanly handle its three possible states: success, error and loading.
-        data: (data) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-            (_) => false,
-          );
-        },
+      next?.whenOrNull(
+        // We ignore 'data' and 'loading' here.
+        // We ONLY handle errors to show the snackbar.
         error: (error, st) {
-          showSnackBar(context, 'Account created successfully! Please login.');
+          showSnackBar(context, error.toString());
         },
-        loading:
-            () {}, //We don't do loader here because the listen function is type void, so basically we cant return anything.
       );
     });
     return Scaffold(
@@ -86,13 +78,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       buttonText: 'Sign in',
                       onTap: () async {
                         if (formKey.currentState!.validate()) {
-                          // ref.read is like give me current data once and don't rebuild
+                          // 1. Await the login action
                           await ref
                               .read(authViewModelProvider.notifier)
                               .loginUser(
                                 email: emailController.text,
                                 password: passwordController.text,
                               );
+
+                          // 2. CHECK THE STATE AND POP THE PAGE
+                          // We check if the current user is now logged in.
+                          // If they are, we remove the LoginPage from the stack.
+                          if (context.mounted) {
+                            final currentUser = ref.read(currentUserProvider);
+                            if (currentUser != null) {
+                              Navigator.of(context).pop(); // Remove LoginPage
+                            }
+                          }
                         } else {
                           showSnackBar(context, 'Missing fields!');
                         }
